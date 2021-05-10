@@ -1,0 +1,57 @@
+package com.fds.components;
+
+import org.springframework.context.annotation.Scope;
+
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.TextArea;
+import com.vaadin.ui.VerticalLayout;
+
+/**
+ * Hien thi form nhap noi dung khi xu ly case
+ * <br>
+ * {@link AddCommentForm}<br>
+ * {@link DiscardForm}<br>
+ * {@link ReopenForm}<br>
+ * {@link TransferForm}<br>
+ * 
+ */
+
+@SpringComponent
+@Scope("prototype")
+public class CaseCommentForm extends VerticalLayout {
+
+	private static final long serialVersionUID = 1L;
+	private final transient TextArea txtareaComment;
+
+	public CaseCommentForm(final String cardno, final String casenumber) {
+		super();
+		setSizeFull();
+
+		setSpacing(true);
+		final Label lbCardNo = new Label("Số thẻ: " + cardno);
+		final Label lbCardNumber = new Label("Case: " + casenumber);
+
+		txtareaComment = new TextArea("Nội dung xác nhận/Yêu cầu");
+		txtareaComment.setWordwrap(true);
+		txtareaComment.setMaxLength(100);
+		txtareaComment.setWidth(100f, Unit.PERCENTAGE);
+		txtareaComment.setHeight(100, Unit.PIXELS);
+
+		addComponent(lbCardNumber);
+		addComponent(lbCardNo);
+		addComponent(txtareaComment);
+	}
+
+	public String getComment() {
+		return txtareaComment.getValue();
+	}
+
+	public void setComment(final String value) {
+		if (txtareaComment.getValue().length() > 0) {
+			txtareaComment.setValue(txtareaComment.getValue() + "\n" + value);
+		} else {
+			txtareaComment.setValue(value);
+		}
+	}
+}

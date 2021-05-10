@@ -1,0 +1,299 @@
+package com.fds.components;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.data.domain.Page;
+
+import com.fds.SpringContextHelper;
+import com.fds.TimeConverter;
+import com.fds.entities.FdsCaseDetail;
+import com.fds.entities.FdsRule;
+import com.fds.entities.FdsSysTask;
+import com.fds.services.CaseDetailService;
+import com.fds.services.RuleService;
+import com.fds.services.SysTaskService;
+import com.fds.services.TxnDetailService;
+import com.fds.views.MainView;
+import com.vaadin.data.Item;
+import com.vaadin.data.util.IndexedContainer;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.shared.ui.grid.HeightMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.renderers.HtmlRenderer;
+import com.vaadin.ui.themes.ValoTheme;
+
+/**
+ * Component tao danh sach case
+ * 
+ * @see Inbox, CaseDistribution, ClosedCase
+ */
+
+@SpringComponent
+@Scope("prototype")
+public class CaseDetailGridComponent extends VerticalLayout {
+
+	private static final long serialVersionUID = 1L;
+	private static final Logger LOGGER = LoggerFactory.getLogger(CaseDetailGridComponent.class);
+	private final transient TimeConverter timeConverter = new TimeConverter();
+	private final transient Grid grid;
+	private final transient RuleService ruleService;
+	private final transient CaseDetailService caseDetailService;
+	private final transient SysTaskService sysTaskService;
+	private final transient TxnDetailService txnDetailService;
+	private boolean color = false;
+	private final transient Page<FdsCaseDetail> dataSource;
+	private final transient Label lbNoDataFound;
+	private final transient IndexedContainer container;
+	private String getColumn;
+
+	/*
+	 * @color: De to mau so the theo rule mac dinh la false
+	 */
+
+	public CaseDetailGridComponent(final Page<FdsCaseDetail> dataSource, final boolean color, final String getColumn) {
+
+		setSizeFull();
+		this.color = color;
+		this.dataSource = dataSource;
+		this.getColumn = getColumn;
+
+		// init SpringContextHelper de truy cap service bean
+		final SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		ruleService = (RuleService) helper.getBean("ruleService");
+		caseDetailService = (CaseDetailService) helper.getBean("caseDetailService");
+		sysTaskService = (SysTaskService) helper.getBean("sysTaskService");
+		txnDetailService = (TxnDetailService) helper.getBean("txnDetailService");
+
+		// init label
+		lbNoDataFound = new Label("Không tìm thấy dữ liệu");
+		lbNoDataFound.setVisible(false);
+		lbNoDataFound.addStyleName(ValoTheme.LABEL_FAILURE);
+		lbNoDataFound.addStyleName(ValoTheme.LABEL_NO_MARGIN);
+		lbNoDataFound.setSizeUndefined();
+
+		// init grid
+		grid = new Grid();
+		grid.setVisible(false);
+		grid.setSizeFull();
+		grid.setHeightByRows(20);
+		grid.setReadOnly(true);
+		grid.setHeightMode(HeightMode.ROW);
+		// init container
+
+		container = new IndexedContainer();
+		container.addContainerProperty("fdsRules", String.class, "");
+		container.addContainerProperty("creTms", String.class, "");
+		container.addContainerProperty("updTms", String.class, "");
+		container.addContainerProperty("encCrdNo", String.class, "");
+		container.addContainerProperty("mercName", String.class, "");
+		container.addContainerProperty("amount", BigDecimal.class, 0);
+		container.addContainerProperty("crncyCde", String.class, "");
+		container.addContainerProperty("refCode", String.class, "");
+		container.addContainerProperty("posMode", String.class, "");
+		container.addContainerProperty("3d", String.class, "");
+		container.addContainerProperty("mcc", String.class, "");
+		container.addContainerProperty("posCntyCde", String.class, "");
+		container.addContainerProperty("caseNo", String.class, "");
+		container.addContainerProperty("cifNo", String.class, "");
+
+		initGrid();
+	}
+
+	private void initGrid() {
+		if (createDataForContainer(this.dataSource) == false) {
+			if (!lbNoDataFound.isVisible() && this.dataSource != null) {
+				lbNoDataFound.setVisible(true);
+			}
+		} else {
+			if (!grid.isVisible()) {
+				grid.setVisible(true);
+			}
+		}
+
+		grid.setContainerDataSource(container);
+		grid.getColumn("caseNo").setHeaderCaption("CASE");
+		grid.getColumn("encCrdNo").setHeaderCaption("SỐ THẺ");
+		grid.getColumn("fdsRules").setHeaderCaption("RULE");
+		grid.getColumn("encCrdNo").setRenderer(new HtmlRenderer());
+		grid.getColumn("crncyCde").setHeaderCaption("TIỀN TỆ");
+		grid.getColumn("creTms").setHeaderCaption("THỜI GIAN");
+		grid.getColumn("updTms").setHeaderCaption("THỜI GIAN CẬP NHẬT");
+		grid.getColumn("amount").setHeaderCaption("SỐ TIỀN");
+		grid.getColumn("refCode").setHeaderCaption("REF CODE");
+		grid.getColumn("posMode").setHeaderCaption("POS MODE");
+		grid.getColumn("3d").setHeaderCaption("3D INC");
+		grid.getColumn("mcc").setHeaderCaption("MCC");
+		grid.getColumn("mercName").setHeaderCaption("MERCHANT");
+		grid.getColumn("posCntyCde").setHeaderCaption("POS COUNTRY CODE");
+		grid.getColumn("cifNo").setHidden(true);
+
+		// Dung cho close case
+		if (this.getColumn.equals("UpdateTime")) {
+			grid.getColumn("updTms").setHidden(false);
+			grid.getColumn("creTms").setHidden(true);
+		} else if (this.getColumn.equals("All")) {
+			grid.getColumn("updTms").setHidden(false);
+			grid.getColumn("creTms").setHidden(false);
+		} else {
+			grid.getColumn("updTms").setHidden(true);
+		}
+		// Them su kien click tren row se chuyen qua man hinh chi tiet case de
+		// xu ly
+		// grid.addSelectionListener(evt -> {
+		// if (grid.getSelectedRow() != null) {
+		//
+		// try {
+		// final String sCaseno = container.getItem(grid.getSelectedRow()).getItemProperty("caseNo").getValue().toString();
+		// final MainView mainview = (MainView) UI.getCurrent().getNavigator().getCurrentView();
+		// mainview.addTab(new CaseDetail(sCaseno), sCaseno);
+		// } catch (Exception e) {
+		// LOGGER.error(e.getMessage());
+		// }
+		// grid.deselectAll();
+		// }
+		// });
+		grid.addItemClickListener(evt -> {
+			try {
+				final String sCaseno = String.valueOf(evt.getItem().getItemProperty("caseNo").getValue());
+				final MainView mainview = (MainView) UI.getCurrent().getNavigator().getCurrentView();
+				mainview.addTab(new CaseDetail(sCaseno), sCaseno);
+			} catch (Exception e) {
+				LOGGER.error(e.getMessage());
+			}
+			grid.deselectAll();
+
+		});
+		// Them tooltip mo ta rule cua case tren grid
+		grid.setRowDescriptionGenerator(row -> {
+			String sText = "";
+			final String sCaseNo = container.getItem(row.getItemId()).getItemProperty("caseNo").getValue().toString();
+			List<FdsRule> result = ruleService.findByCaseNo(sCaseNo);
+			for (FdsRule r : result) {
+				sText = sText + r.getRuleId() + ": " + r.getRuleDesc() + "<br/>";
+			}
+			return sText;
+
+		});
+		grid.setCellStyleGenerator(cell -> {
+			if (cell.getPropertyId().equals("amount")) {
+				return "v-align-right";
+			}
+			return "";
+		});
+
+		addComponentAsFirst(lbNoDataFound);
+		addComponentAsFirst(grid);
+
+		// mainLayout.addComponentAsFirst(label_nodatafound);
+		// mainLayout.addComponentAsFirst(grid);
+
+	}
+
+	private String getColorByRuleId(final String caseno) {
+		return ruleService.findColorByCaseNo(caseno);
+	}
+
+	public void refreshData(Page<FdsCaseDetail> dataSource) {
+		getUI().access(() -> {
+			if (createDataForContainer(dataSource) == false) {
+				if (!lbNoDataFound.isVisible()) {
+					lbNoDataFound.setVisible(true);
+				}
+				if (grid.isVisible()) {
+					grid.setVisible(false);
+				}
+			} else {
+				if (lbNoDataFound.isVisible()) {
+					lbNoDataFound.setVisible(false);
+				}
+				if (!grid.isVisible()) {
+					grid.setVisible(true);
+				}
+			}
+		});
+	}
+
+	@SuppressWarnings("unchecked")
+	private boolean createDataForContainer(final Page<FdsCaseDetail> listCaseDetail) {
+		if (listCaseDetail != null && listCaseDetail.hasContent()) {
+
+			container.removeAllItems();
+			listCaseDetail.forEach(s -> {
+				Item item = container.getItem(container.addItem());
+				item.getItemProperty("creTms").setValue(timeConverter.convertStrToDateTime(s.getCreTms().toString()));
+				item.getItemProperty("updTms").setValue(timeConverter.convertStrToDateTime(s.getUpdTms().toString()));
+				item.getItemProperty("caseNo").setValue(s.getCaseNo());
+				item.getItemProperty("amount").setValue(s.getAmount());
+				item.getItemProperty("encCrdNo").setValue(decodeCardNoWithColor(s.getEncCrdNo(), s.getCaseNo(), s.getCifNo()));
+				item.getItemProperty("crncyCde").setValue(s.getCrncyCde());
+				item.getItemProperty("posMode").setValue(s.getPosMode());
+				item.getItemProperty("fdsRules").setValue(createListRule(s.getFdsRules()));
+				item.getItemProperty("cifNo").setValue(s.getCifNo());
+				item.getItemProperty("mcc").setValue(s.getMcc());
+				item.getItemProperty("3d").setValue(s.getTxn3dInd());
+				item.getItemProperty("mercName").setValue(s.getMercName());
+				item.getItemProperty("refCode").setValue(getRefCode(s.getTxnCreTms(), s.getEncCrdNo()));
+				item.getItemProperty("posCntyCde").setValue(getPosCountryCde(s.getEncCrdNo(), s.getTxnCreTms()));
+			});
+		} else {
+			return false;
+		}
+		return true;
+	}
+
+	// Tao list rule cua case tren grid
+	private String createListRule(final List<FdsRule> listrule) {
+		if (listrule.isEmpty()) {
+			return "";
+		}
+		String sRule = "";
+		for (final FdsRule a : listrule) {
+			sRule = sRule + a.getRuleId() + ", ";
+		}
+		return sRule.substring(0, sRule.length() - 2);
+	}
+
+	private boolean checkException(final String cifno) {
+		FdsSysTask task = sysTaskService.findOneByObjectAndCurrentTime(cifno, "EXCEPTION");
+		if (task != null) {
+			return true;
+		}
+		return false;
+	}
+
+	private String decodeCardNoWithColor(final String cardno, final String caseno, final String cifno) {
+		final String sCifNo = cifno;
+		final String sCardNo = caseDetailService.getDed2(cardno);
+		// Format lai so the #### #### #### ####
+		String sReformatedCardNo = String.valueOf(sCardNo).replaceFirst("(\\d{4})(\\d{4})(\\d{4})(\\d{4})", "$1 $2 $3 $4");
+
+		if (color) {
+			String sColor = getColorByRuleId(caseno);
+			if (checkException(sCifNo)) {
+				return "<span class='v-label-exception'> </span><span style=\"padding:7px 0px; background-color:" + sColor + "\">" + sReformatedCardNo
+						+ "</span>";
+			}
+			return "<span style=\"padding:7px 0px; background-color:" + sColor + "\">" + sReformatedCardNo + "</span>";
+
+		}
+		return sReformatedCardNo;
+	}
+
+	// Lay so ref code tu bang txndetail
+	private String getRefCode(final BigDecimal cretms, String usedpan) {
+		return txnDetailService.findRefCdeByCreTmsAndUsedPan(cretms, usedpan);
+	}
+
+	// Lay so pos country code tu bang txndetail
+	private String getPosCountryCde(final String usedpan, final BigDecimal cretms) {	
+		return txnDetailService.findOneFxOa008CntryCdeByFxOa008UsedPanAndF9Oa008CreTms(usedpan, cretms);
+	}
+}

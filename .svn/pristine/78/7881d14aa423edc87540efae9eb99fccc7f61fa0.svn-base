@@ -1,0 +1,51 @@
+package com.fds.components.reports;
+
+import java.util.List;
+
+import org.springframework.context.annotation.Scope;
+
+import com.fds.SpringContextHelper;
+import com.fds.TimeConverter;
+import com.fds.services.CaseDetailService;
+import com.fds.services.RuleService;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.spring.annotation.SpringComponent;
+
+@SpringComponent
+@Scope("prototype")
+public class ReportCaseRuleId extends ReportForm {
+
+	private static final long serialVersionUID = 948999651034442817L;
+	public static final String CAPTION = "BC THỐNG KÊ SỐ LƯỢNG RULE";
+	private final transient CaseDetailService caseDetailService;
+
+	public ReportCaseRuleId() {
+		final SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		final RuleService ruleService = (RuleService) helper.getBean("ruleService");
+		caseDetailService = (CaseDetailService) helper.getBean("caseDetailService");
+		cbboxRuleId.setVisible(true);
+		ruleService.findAll().forEach(result -> {
+			cbboxRuleId.addItems(result.getRuleId());
+		});
+
+		filename = "BaoCaoThongKeSoLuongRule.xlsx";
+	}
+
+	// @formatter:off
+	@Override
+	public List<Object[]> getResult() {
+		if (dffromDate.getValue() != null && dfToDate.getValue() != null) {
+			
+			final TimeConverter timeConverter=new TimeConverter();			 
+			
+			final List<Object[]> _listResult = caseDetailService.reportRuleId(
+					timeConverter.convertDatetime(dffromDate.getValue(), false), 
+					timeConverter.convertDatetime(dfToDate.getValue(), true),
+					cbboxRuleId.getValue() == null ? null : cbboxRuleId.getValue().toString()
+					);
+			return _listResult;
+		}
+		return null;
+	}
+	// @formatter:on
+}

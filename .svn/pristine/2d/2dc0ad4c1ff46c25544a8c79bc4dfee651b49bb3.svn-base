@@ -1,0 +1,37 @@
+package com.fds.components.reports;
+
+import java.util.List;
+
+import org.springframework.context.annotation.Scope;
+
+import com.fds.SpringContextHelper;
+import com.fds.TimeConverter;
+import com.fds.services.CaseDetailService;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.spring.annotation.SpringComponent;
+
+@SpringComponent
+@Scope("prototype")
+public class ReportCaseTotal extends ReportForm {
+	private static final long serialVersionUID = -4877706024903750843L;
+	public static final String CAPTION = "BC TỔNG SỐ CASE";
+	private final transient CaseDetailService caseDetailService;
+
+	public ReportCaseTotal() {
+		final SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		caseDetailService = (CaseDetailService) helper.getBean("caseDetailService");
+		super.filename = "BaoCaoTongSoCase.xlsx";
+	}
+
+	@Override
+	public List<Object[]> getResult() {
+		if (dffromDate.getValue() != null && dfToDate.getValue() != null) {
+
+			final TimeConverter timeConverter = new TimeConverter();
+			final List<Object[]> listResult = caseDetailService.reportAllCase(timeConverter.convertDatetime(dffromDate.getValue(), false),
+					timeConverter.convertDatetime(dfToDate.getValue(), true));
+			return listResult;
+		}
+		return null;
+	}
+}

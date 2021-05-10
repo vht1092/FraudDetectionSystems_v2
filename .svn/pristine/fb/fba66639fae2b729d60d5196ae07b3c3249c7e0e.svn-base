@@ -1,0 +1,69 @@
+package com.fds.components.reports;
+
+import java.text.SimpleDateFormat;
+import java.util.List;
+
+import org.springframework.context.annotation.Scope;
+import org.springframework.util.StringUtils;
+
+import com.fds.SpringContextHelper;
+import com.fds.TimeConverter;
+import com.fds.services.CaseDetailService;
+import com.vaadin.data.Validator.InvalidValueException;
+import com.vaadin.server.Page;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.Notification;
+import com.vaadin.ui.Notification.Type;
+
+@SpringComponent
+@Scope("prototype")
+public class ReportCaseTxnCrdDet extends ReportForm {
+
+	private static final long serialVersionUID = 1L;
+	public static final String CAPTION = "BC CHI TIẾT THEO GIAO DỊCH THẺ";
+	private final transient CaseDetailService caseDetailService;
+
+	public ReportCaseTxnCrdDet() {
+		final SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		caseDetailService = (CaseDetailService) helper.getBean("caseDetailService");
+
+		tfMerchantName.setVisible(true);
+		tfMerchantName.setValidationVisible(false);
+		tfTerminalId.setVisible(true);
+		tfTerminalId.setValidationVisible(false);
+		tfCardNo.setVisible(true);
+		tfCardNo.setValidationVisible(false);
+		tfMcc.setVisible(true);
+		tfMcc.setValidationVisible(false);
+
+		super.filename = "BaoCaoChiTietGiaoDich.xlsx";
+	}
+
+	@Override
+	public List<Object[]> getResult() {
+		if (dffromDate.getValue() != null && dfToDate.getValue() != null && tfMerchantName.getValue() != null && tfTerminalId.getValue() != null
+				&& tfCardNo.getValue() != null && tfMcc.getValue() != null) {
+
+			if (!StringUtils.hasText(tfMerchantName.getValue()) && !StringUtils.hasText(tfTerminalId.getValue())
+					&& !StringUtils.hasText(tfCardNo.getValue()) && !StringUtils.hasText(tfMcc.getValue())) {
+				final Notification nofi = new Notification("Vui lòng điền ít nhất một trường thông tin", Notification.Type.WARNING_MESSAGE);
+				nofi.setDelayMsec(3000);
+				nofi.show(Page.getCurrent());
+				return null;
+			} else {
+				final SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+				format.format(dffromDate.getValue());
+
+				final List<Object[]> listResult = caseDetailService.reportTxnCrdDet(format.format(dffromDate.getValue()),
+						format.format(dfToDate.getValue()), tfMerchantName.getValue(), tfTerminalId.getValue(), tfCardNo.getValue(),
+						tfMcc.getValue());
+				return listResult;
+			}
+
+		}
+		return null;
+
+	}
+
+}

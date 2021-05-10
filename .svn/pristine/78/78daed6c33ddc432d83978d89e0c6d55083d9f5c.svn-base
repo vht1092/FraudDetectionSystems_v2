@@ -1,0 +1,29 @@
+package com.fds.services;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import com.fds.entities.FdsSysTask;
+
+public interface SysTaskService {
+	Iterable<FdsSysTask> findAllByUseridWithCurrentTime(String userid, String type);
+
+	FdsSysTask findOneByObjectTaskAndTypeTask(String object, String type);
+
+	FdsSysTask findOneByObjectAndCurrentTime(String object, String type);
+
+	List<FdsSysTask> findAllByTypeTask(String typetask);
+
+	void save(String object, String content, String type, String userid);
+
+	void save(String object, BigDecimal fromdate, BigDecimal todate, String content, String type, String userid);
+
+	void update(String object, BigDecimal fromdate, BigDecimal todate, String content, String type, String userid);
+
+	void delete(String userid, String object, String type);
+
+	void delete(String userid, String type);
+
+	void deleteByObjecttaskAndTypetask(String object, String type);
+
+}

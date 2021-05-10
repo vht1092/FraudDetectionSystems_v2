@@ -1,0 +1,246 @@
+package com.fds.components.reports;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.List;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Scope;
+
+import com.fds.AdvancedFileDownloader;
+import com.fds.AdvancedFileDownloader.AdvancedDownloaderListener;
+import com.fds.AdvancedFileDownloader.DownloaderEvent;
+import com.fds.SpringConfigurationValueHelper;
+import com.fds.SpringContextHelper;
+import com.vaadin.data.Validator.InvalidValueException;
+import com.vaadin.data.validator.NullValidator;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.StreamResource;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.CustomComponent;
+import com.vaadin.ui.DateField;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.Notification;
+import com.vaadin.ui.Notification.Type;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.themes.ValoTheme;
+
+@SpringComponent
+@Scope("prototype")
+public class ReportForm extends CustomComponent {
+
+	private static final long serialVersionUID = 7496781413585717785L;
+	public DateField dffromDate;
+	public DateField dfToDate;
+	public ComboBox cbboxTypeAction;
+	public ComboBox cbboxTypeCard;
+	public ComboBox cbboxCaseStatus;
+	public ComboBox cbboxUser;
+	public ComboBox cbboxRuleId;
+	public TextField tfMerchantName;
+	public TextField tfTerminalId;
+	public TextField tfCardNo;
+	public TextField tfMcc;
+	private StreamResource myResource;
+	private static final String INPUT_FIELD = "Vui lòng chọn giá trị";
+	private SpringConfigurationValueHelper configurationHelper;
+	private static final Logger LOGGER = LoggerFactory.getLogger(ReportForm.class);
+	private AdvancedFileDownloader advancedFileDownloader;
+	public String filename;
+
+	public ReportForm() {
+		FormLayout mainLayout = new FormLayout();
+		mainLayout.setMargin(true);
+
+		final SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		configurationHelper = (SpringConfigurationValueHelper) helper.getBean("springConfigurationValueHelper");
+		dffromDate = new DateField("Từ ngày");
+		dffromDate.setDateFormat("dd/MM/yyyy");
+		dffromDate.addValidator(new NullValidator(INPUT_FIELD, false));
+		dffromDate.setValidationVisible(false);
+
+		dfToDate = new DateField("Đến ngày");
+		dfToDate.setDateFormat("dd/MM/yyyy");
+		dfToDate.addValidator(new NullValidator(INPUT_FIELD, false));
+		dfToDate.setValidationVisible(false);
+
+		cbboxCaseStatus = new ComboBox("Tình trạng case");
+		cbboxCaseStatus.setVisible(false);
+		cbboxCaseStatus.setItemCaptionMode(ItemCaptionMode.EXPLICIT);
+
+		cbboxTypeAction = new ComboBox("Loại thao tác");
+		cbboxTypeAction.setVisible(false);
+		cbboxTypeAction.setItemCaptionMode(ItemCaptionMode.EXPLICIT);
+
+		cbboxTypeCard = new ComboBox("Loại thẻ");
+		cbboxTypeCard.setVisible(false);
+		cbboxTypeCard.setItemCaptionMode(ItemCaptionMode.EXPLICIT);
+
+		cbboxUser = new ComboBox("Người dùng");
+		cbboxUser.setVisible(false);
+
+		cbboxRuleId = new ComboBox("Rule id");
+		cbboxRuleId.setVisible(false);
+
+		tfMerchantName = new TextField("Merchant Name");
+		tfMerchantName.setVisible(false);
+
+		tfTerminalId = new TextField("Terminal ID");
+		tfTerminalId.setVisible(false);
+
+		tfCardNo = new TextField("Card No");
+		tfCardNo.setVisible(false);
+
+		tfMcc = new TextField("MCC");
+		tfMcc.setVisible(false);
+
+		final Button btExport = new Button("Xuất báo cáo");
+		btExport.setStyleName(ValoTheme.BUTTON_PRIMARY);
+		btExport.setIcon(FontAwesome.SHARE_SQUARE);
+
+		myResource = createResource(filename, getResult(), null, null);
+
+		advancedFileDownloader = new AdvancedFileDownloader(myResource);
+		advancedFileDownloader.addAdvancedDownloaderListener(new AdvancedDownloaderListener() {
+
+			@Override
+			public boolean beforeDownload(DownloaderEvent downloadEvent) {
+
+				dffromDate.setValidationVisible(false);
+				dfToDate.setValidationVisible(false);
+				try {
+					dffromDate.validate();
+					dfToDate.validate();
+					final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+					dateFormat.format(dffromDate.getValue());
+					dateFormat.format(dfToDate.getValue());
+					if (getResult() != null) {
+						myResource = createResource(filename, getResult(), dateFormat.format(dffromDate.getValue()),
+								dateFormat.format(dfToDate.getValue()));
+						advancedFileDownloader.setFileDownloadResource(myResource);
+						return true;
+					} else {
+						return false;
+					}
+				} catch (InvalidValueException ex) {
+					dffromDate.setValidationVisible(true);
+					dfToDate.setValidationVisible(true);
+					return false;
+				} catch (Exception ex) {
+					LOGGER.error("Khong the xuat bao cao - Message:" + ex.getMessage());
+					Notification.show("Lỗi không thể xuất báo cáo", Type.ERROR_MESSAGE);
+					return false;
+				}
+
+			}
+		});
+		advancedFileDownloader.extend(btExport);
+
+		mainLayout.addComponent(dffromDate);
+		mainLayout.addComponent(dfToDate);
+		mainLayout.addComponent(cbboxTypeAction);
+		mainLayout.addComponent(cbboxCaseStatus);
+		mainLayout.addComponent(cbboxTypeCard);
+		mainLayout.addComponent(cbboxUser);
+		mainLayout.addComponent(cbboxRuleId);
+		mainLayout.addComponent(tfMerchantName);
+		mainLayout.addComponent(tfTerminalId);
+		mainLayout.addComponent(tfCardNo);
+		mainLayout.addComponent(tfMcc);
+
+		mainLayout.addComponent(btExport);
+
+		setCompositionRoot(mainLayout);
+	}
+
+	private StreamResource createResource(final String filename, final List<Object[]> listResult, final String fromdate, final String todate) {
+		return new StreamResource(() -> createContent(listResult, filename, fromdate, todate), filename);
+	}
+
+	private ByteArrayInputStream createContent(final List<Object[]> listResult, final String filename, final String fromdate, final String todate) {
+		try {
+			final FileInputStream fis = new FileInputStream(new File(configurationHelper.getPathTemplateReport() + "/" + filename));
+			final XSSFWorkbook wbs = new XSSFWorkbook(fis);
+			final Sheet sheet = wbs.getSheetAt(0);
+
+			// Cap nhat lai noi dung ngay thang xuat bao cao
+			final Row rowDate = sheet.getRow(1);
+			final Cell cellDate = rowDate.getCell(0);
+			cellDate.setCellValue("Từ ngày " + fromdate + " " + "đến " + todate);
+
+			// Bat dau them du lieu tu cot thu 4
+			Row row = null;
+			Cell cell = null;
+
+			int rownum = 3;
+
+			if (listResult != null) {
+
+				for (int i = 0; i < listResult.size(); i++, rownum++) {
+					row = sheet.createRow(rownum);
+
+					if (listResult.get(i) == null) {
+						continue;
+					}
+
+					for (int j = 0; j < listResult.get(i).length; j++) {
+						cell = row.createCell(j);
+						cell.setCellValue(listResult.get(i)[j] != null ? listResult.get(i)[j].toString() : "");
+					}
+				}
+			}
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			try {
+				wbs.write(bos);
+				return new ByteArrayInputStream(bos.toByteArray());
+			} catch (Exception e) {
+				LOGGER.error(e.getMessage());
+			} finally {
+				bos.close();
+				wbs.close();
+				fis.close();
+			}
+		} catch (FileNotFoundException e) {
+			LOGGER.error(e.getMessage());			
+		} catch (IOException e) {
+			LOGGER.error(e.getMessage());
+		}
+		return null;
+	}
+
+	public List<Object[]> getResult() {
+		return null;
+	}
+
+	// private static Map<String, XSSFCellStyle> createStyles(XSSFWorkbook wb) {
+	// Map<String, XSSFCellStyle> styles = new HashMap<String, XSSFCellStyle>();
+	// XSSFCellStyle style;
+	//
+	// // Title
+	// XSSFFont titleFont = wb.createFont();
+	// titleFont.setFontHeightInPoints((short) 12);
+	// titleFont.setBold(true);
+	// style = wb.createCellStyle();
+	// style.setAlignment(HorizontalAlignment.CENTER);
+	// style.setVerticalAlignment(VerticalAlignment.CENTER);
+	// style.setFont(titleFont);
+	// styles.put("title", style);
+	// return styles;
+	//
+	// }
+
+}

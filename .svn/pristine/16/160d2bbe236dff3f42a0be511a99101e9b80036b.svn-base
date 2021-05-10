@@ -1,0 +1,20 @@
+package com.fds.services;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.fds.entities.FdsDescription;
+import com.fds.repositories.DescriptionRepo;
+
+@Service("descriptionService")
+public class DescriptionServiceImpl implements DescriptionService {
+
+	@Autowired
+	private DescriptionRepo descriptionRepo;
+
+	@Override
+	public Iterable<FdsDescription> findAllByType(String type) {
+		return descriptionRepo.findAllByType(type);
+	}
+
+}

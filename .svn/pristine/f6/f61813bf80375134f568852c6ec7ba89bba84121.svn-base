@@ -1,0 +1,78 @@
+package com.fds;
+
+import com.fds.components.CaseDistribution;
+import com.fds.components.ClosedCase;
+//import com.fds.components.ClosedCase;
+import com.fds.components.ExceptionCase;
+import com.fds.components.FollowUp;
+import com.fds.components.Inbox;
+//import com.fds.components.FollowUp;
+//import com.fds.components.Inbox;
+import com.fds.components.RoleList;
+import com.fds.components.RuleList;
+import com.fds.components.Search;
+//import com.fds.components.Search;
+import com.fds.components.UserManager;
+import com.fds.components.reports.ReportCaseActionByUser;
+import com.fds.components.reports.ReportCaseByTxn;
+import com.fds.components.reports.ReportCaseRuleId;
+import com.fds.components.reports.ReportCaseStatus;
+import com.fds.components.reports.ReportCaseTotal;
+import com.fds.components.reports.ReportCaseTxnCrdDet;
+import com.vaadin.ui.Component;
+
+/**
+ * Danh sach cac component duoc them vao tabsheet
+ * Khi them moi cap nhat vao table FDS_DESCRIPTION de load vao menu, FDS_DESCRIPTION.DESCRIPTION can co noi dung nhu caption cua class
+ * @see com.fds.views.MainView
+ * */
+
+public enum FdsTabType {
+
+	INBOXS(Inbox.class,Inbox.CAPTION), 
+	CASEDISTRIBUTION(CaseDistribution.class,CaseDistribution.CAPTION),
+	CLOSECASE(ClosedCase.class,ClosedCase.CAPTION),
+	EXCEPTIONCASE(ExceptionCase.class,ExceptionCase.CAPTION),
+	SEARCH(Search.class,Search.CAPTION),
+	FOLLOWUP(FollowUp.class,FollowUp.CAPTION),
+	ROLELIST(RoleList.class,RoleList.CAPTION),
+	RULELIST(RuleList.class,RuleList.CAPTION),
+	USERMANAGER(UserManager.class,UserManager.CAPTION),	
+	//Reports
+	REPORTCASEACTIONBYUSER(ReportCaseActionByUser.class,ReportCaseActionByUser.CAPTION),
+	REPORTCASE(ReportCaseTotal.class,ReportCaseTotal.CAPTION),
+	REPORTCASEBYTXN(ReportCaseByTxn.class,ReportCaseByTxn.CAPTION),
+	REPORTCASEBYSTATUS(ReportCaseStatus.class,ReportCaseStatus.CAPTION),
+	REPORTCASERULEID(ReportCaseRuleId.class,ReportCaseRuleId.CAPTION),
+	REPORTCASETXNCRDDET(ReportCaseTxnCrdDet.class,ReportCaseTxnCrdDet.CAPTION)	
+	;
+
+	private final String caption;
+	private final Class<? extends Component> classComponent;
+
+	private FdsTabType(Class<? extends Component> classComponent,String caption) {
+		this.caption = caption;
+		this.classComponent = classComponent;
+	}
+
+	public String getCaption() {
+		return caption;
+	}
+
+	public Class<? extends Component> getClassComponent() {
+		return classComponent;
+	}	
+	
+	public static FdsTabType getTabType(final String caption){
+		FdsTabType result=null;
+		for (FdsTabType tabType:values()){
+			if(tabType.getCaption().equals(caption)){
+				result=tabType;
+				break;
+			}
+		}
+		return result;
+	}
+	
+
+}

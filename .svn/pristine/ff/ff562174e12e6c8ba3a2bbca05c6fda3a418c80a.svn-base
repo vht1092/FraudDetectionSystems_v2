@@ -1,0 +1,62 @@
+package com.fds.components.reports;
+
+import java.util.List;
+
+import com.fds.SpringContextHelper;
+import com.fds.TimeConverter;
+import com.fds.services.CaseDetailService;
+import com.fds.services.DescriptionService;
+import com.fds.services.SysUserService;
+import com.vaadin.server.VaadinServlet;
+
+public class ReportCaseStatus extends ReportForm {
+	public static final String CAPTION = "BC TÌNH TRẠNG CASE";
+	private final transient CaseDetailService caseDetailService;
+	private static final long serialVersionUID = 3180591912898254754L;
+
+	public ReportCaseStatus() {
+
+		final SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		final DescriptionService descriptionService = (DescriptionService) helper.getBean("descriptionService");
+		final SysUserService sysUserService = (SysUserService) helper.getBean("sysUserService");
+		caseDetailService = (CaseDetailService) helper.getBean("caseDetailService");
+
+		cbboxCaseStatus.setVisible(true);
+		descriptionService.findAllByType("CASE STATUS").forEach(result -> {
+			cbboxCaseStatus.addItem(result.getId());
+			cbboxCaseStatus.setItemCaption(result.getId(), result.getDescription());
+		});
+
+		cbboxTypeCard.setVisible(true);
+		descriptionService.findAllByType("CARD").forEach(result -> {
+			cbboxTypeCard.addItem(result.getId());
+			cbboxTypeCard.setItemCaption(result.getId(), result.getDescription());
+		});
+
+		cbboxUser.setVisible(true);
+		sysUserService.findAllUserByActiveflagIsTrue().forEach(r -> {
+			cbboxUser.addItems(r.getUserid());
+		});
+
+		super.filename = "BaoCaoTinhTrangCase.xlsx";
+	}
+
+	/* @formatter:off */
+	@Override
+	public List<Object[]> getResult() {
+		if (dfToDate.getValue() != null && dffromDate.getValue() != null) {
+			final TimeConverter timeConverter = new TimeConverter();
+			
+			final List<Object[]> listResult = caseDetailService.reportCaseByStatus(
+					timeConverter.convertDatetime(dffromDate.getValue(), false), 
+					timeConverter.convertDatetime(dfToDate.getValue(), true),
+					cbboxTypeCard.getValue() == null ? null : cbboxTypeCard.getValue().toString(),
+					cbboxUser.getValue() == null ? null : cbboxUser.getValue().toString(), 
+					cbboxCaseStatus.getValue() == null ? null : cbboxCaseStatus.getValue().toString()
+					);
+			return listResult;
+		}
+		return null;
+	}
+	/* @formatter:on */
+}

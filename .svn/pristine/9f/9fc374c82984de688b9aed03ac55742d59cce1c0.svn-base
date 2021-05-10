@@ -1,0 +1,28 @@
+package com.fds;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import com.vaadin.server.ThemeResource;
+import com.vaadin.ui.Audio;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+
+public class FraudDetectionSystemsApplicationTests {
+
+	@Test
+	public void contextLoads() {
+	
+		
+
+	}
+
+}

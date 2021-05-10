@@ -1,0 +1,146 @@
+package com.fds.components;
+
+import org.springframework.context.annotation.Scope;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
+import com.fds.ReloadComponent;
+import com.fds.SecurityUtils;
+import com.fds.SpringContextHelper;
+import com.fds.entities.FdsCaseDetail;
+import com.fds.services.CaseDetailService;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.CustomComponent;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
+
+@SpringComponent
+@Scope("prototype")
+public class ClosedCase extends CustomComponent implements ReloadComponent {
+
+	/**
+	 * Hien thi danh sach cac case da dong
+	 * 
+	 */
+
+	private static final long serialVersionUID = 1L;
+	public static final String CAPTION = "CASE ĐÃ ĐÓNG";
+	private final CaseDetailService caseDetailService;
+	private final CaseDetailGridComponent grid;
+	private final VerticalLayout mainLayout = new VerticalLayout();
+	private String sUserId = "";
+	private Page<FdsCaseDetail> result;
+	private HorizontalLayout pagingLayout;
+
+	// Paging
+	private static final int SIZE_OF_PAGE = 50;
+	private static final int FIRST_OF_PAGE = 0;
+
+	public ClosedCase() {
+		setCaption(CAPTION);
+		SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		caseDetailService = (CaseDetailService) helper.getBean("caseDetailService");
+		this.sUserId = SecurityUtils.getUserId();
+
+		mainLayout.setSpacing(true);
+		grid = new CaseDetailGridComponent(getData(new PageRequest(FIRST_OF_PAGE, SIZE_OF_PAGE, Sort.Direction.DESC, "updTms")), false, "UpdateTime");
+		mainLayout.addComponent(grid);
+
+		pagingLayout = generatePagingLayout();
+		pagingLayout.setSpacing(true);
+		mainLayout.addComponent(pagingLayout);
+		mainLayout.setComponentAlignment(pagingLayout, Alignment.BOTTOM_RIGHT);
+
+		setCompositionRoot(mainLayout);
+
+	}
+
+	private HorizontalLayout generatePagingLayout() {
+		Button btLabelPaging = new Button();
+		btLabelPaging.setCaption(reloadLabelPaging());
+		btLabelPaging.setEnabled(false);
+
+		final Button btPreviousPage = new Button("Trang trước");
+		btPreviousPage.setIcon(FontAwesome.ANGLE_LEFT);
+		btPreviousPage.setEnabled(result.hasPrevious());
+
+		final Button btNextPage = new Button("Trang sau");
+		btNextPage.setStyleName(ValoTheme.BUTTON_ICON_ALIGN_RIGHT);
+		btNextPage.setIcon(FontAwesome.ANGLE_RIGHT);
+		btNextPage.setEnabled(result.hasNext());
+
+		btNextPage.addClickListener(evt -> {
+			grid.refreshData(getData(result.nextPageable()));
+			btNextPage.setEnabled(result.hasNext());
+			btPreviousPage.setEnabled(result.hasPrevious());
+			UI.getCurrent().access(new Runnable() {
+				@Override
+				public void run() {
+					btLabelPaging.setCaption(reloadLabelPaging());
+				}
+			});
+
+		});
+
+		btPreviousPage.addClickListener(evt -> {
+			grid.refreshData(getData(result.previousPageable()));
+			btNextPage.setEnabled(result.hasNext());
+			btPreviousPage.setEnabled(result.hasPrevious());
+			UI.getCurrent().access(new Runnable() {
+				@Override
+				public void run() {
+					btLabelPaging.setCaption(reloadLabelPaging());
+				}
+			});
+		});
+
+		final HorizontalLayout pageLayout = new HorizontalLayout();
+		pageLayout.setSizeUndefined();
+		pageLayout.setSpacing(true);
+		pageLayout.addComponent(btLabelPaging);
+		pageLayout.addComponent(btPreviousPage);
+		pageLayout.addComponent(btNextPage);
+		pageLayout.setDefaultComponentAlignment(Alignment.BOTTOM_RIGHT);
+
+		return pageLayout;
+	}
+
+	private String reloadLabelPaging() {
+		final StringBuilder sNumberOfElements = new StringBuilder();
+		if (result.getSize() * (result.getNumber() + 1) >= result.getTotalElements()) {
+			sNumberOfElements.append(result.getTotalElements());
+		} else {
+			sNumberOfElements.append(result.getSize() * (result.getNumber() + 1));
+		}
+		final String sTotalElements = Long.toString(result.getTotalElements());
+
+		return sNumberOfElements.toString() + "/" + sTotalElements;
+
+	}
+
+	private Page<FdsCaseDetail> getData(Pageable page) {
+		result = caseDetailService.findAllClosedByUser(page, sUserId);
+		return result;
+	}
+
+	@Override
+	public void eventReload() {
+		grid.refreshData(getData(new PageRequest(FIRST_OF_PAGE, SIZE_OF_PAGE, Sort.Direction.DESC, "updTms")));
+
+		// Refresh paging button
+		mainLayout.removeComponent(pagingLayout);
+		pagingLayout = generatePagingLayout();
+		pagingLayout.setSpacing(true);
+		mainLayout.addComponent(pagingLayout);
+		mainLayout.setComponentAlignment(pagingLayout, Alignment.BOTTOM_RIGHT);
+	}
+
+}

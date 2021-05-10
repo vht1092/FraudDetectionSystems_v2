@@ -1,0 +1,46 @@
+package com.fds.components.reports;
+
+import java.util.List;
+
+import org.springframework.context.annotation.Scope;
+
+import com.fds.SpringContextHelper;
+import com.fds.TimeConverter;
+import com.fds.services.CaseDetailService;
+import com.fds.services.DescriptionService;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.spring.annotation.SpringComponent;
+
+@SpringComponent
+@Scope("prototype")
+public class ReportCaseByTxn extends ReportForm {
+	private static final long serialVersionUID = -4877706024903750843L;
+	public static final String CAPTION = "BC THEO GIAO DỊCH THẺ CỦA KH";
+	private final transient CaseDetailService caseDetailService;
+
+	public ReportCaseByTxn() {
+		final SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		caseDetailService = (CaseDetailService) helper.getBean("caseDetailService");
+		final DescriptionService descService = (DescriptionService) helper.getBean("descriptionService");
+		cbboxTypeCard.setVisible(true);
+		descService.findAllByType("CARD").forEach(result -> {
+			cbboxTypeCard.addItem(result.getId());
+			cbboxTypeCard.setItemCaption(result.getId(), result.getDescription());
+
+		});
+		super.filename = "BaoCaoTheoGiaoDich.xlsx";
+	}
+
+	@Override
+	public List<Object[]> getResult() {
+		if (dffromDate.getValue() != null && dfToDate.getValue() != null) {
+
+			final TimeConverter timeConverter = new TimeConverter();
+			final List<Object[]> listResult = caseDetailService.reportCaseByTxn(timeConverter.convertDatetime(dffromDate.getValue(), false),
+					timeConverter.convertDatetime(dfToDate.getValue(), true),
+					cbboxTypeCard.getValue() != null ? cbboxTypeCard.getValue().toString() : null);
+			return listResult;
+		}
+		return null;
+	}
+}

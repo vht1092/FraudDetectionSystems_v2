@@ -1,0 +1,68 @@
+package com.fds.components.reports;
+
+import java.util.List;
+
+import org.springframework.context.annotation.Scope;
+
+import com.fds.SpringContextHelper;
+import com.fds.TimeConverter;
+import com.fds.services.CaseDetailService;
+import com.fds.services.DescriptionService;
+import com.fds.services.SysUserService;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.spring.annotation.SpringComponent;
+
+@SpringComponent
+@Scope("prototype")
+public class ReportCaseActionByUser extends ReportForm {
+
+	private static final long serialVersionUID = 3180591912898254754L;
+	public static final String CAPTION = "BC TÁC ĐỘNG CASE THEO USER";
+	private final transient CaseDetailService caseDetailService;
+
+	public ReportCaseActionByUser() {
+		final SpringContextHelper helper = new SpringContextHelper(VaadinServlet.getCurrent().getServletContext());
+		caseDetailService = (CaseDetailService) helper.getBean("caseDetailService");
+
+		final DescriptionService descService = (DescriptionService) helper.getBean("descriptionService");
+		final SysUserService sysUserService = (SysUserService) helper.getBean("sysUserService");
+
+		cbboxTypeAction.setVisible(true);
+		descService.findAllByType("ACTION").forEach(r -> {
+			cbboxTypeAction.addItem(r.getId());
+			cbboxTypeAction.setItemCaption(r.getId(), r.getDescription());
+
+		});
+
+		cbboxTypeCard.setVisible(true);
+		descService.findAllByType("CARD").forEach(r -> {
+			cbboxTypeCard.addItem(r.getId());
+			cbboxTypeCard.setItemCaption(r.getId(), r.getDescription());
+		});
+
+		cbboxUser.setVisible(true);
+		sysUserService.findAllUserByActiveflagIsTrue().forEach(r -> {
+			cbboxUser.addItems(r.getUserid());
+		});
+
+		super.filename = "BaoCaoTacDongCaseTheoUser.xlsx";
+	}
+
+	// @formatter:off
+	@Override
+	public List<Object[]> getResult() {
+		if (dffromDate.getValue() != null && dfToDate.getValue() != null) {
+			
+			TimeConverter timeConverter=new TimeConverter();
+			
+			List<Object[]> listResult = caseDetailService.reportCaseByUser(
+					timeConverter.convertDatetime(dffromDate.getValue(), false), 
+					timeConverter.convertDatetime(dfToDate.getValue(), true),
+					cbboxUser.getValue() == null ? null : cbboxUser.getValue().toString(),
+					cbboxTypeAction.getValue() == null ? null : cbboxTypeAction.getValue().toString(), cbboxTypeCard.getValue() == null ? null : cbboxTypeCard.getValue().toString());
+			return listResult;
+		}
+		return null;
+	}
+	// @formatter:on
+}
