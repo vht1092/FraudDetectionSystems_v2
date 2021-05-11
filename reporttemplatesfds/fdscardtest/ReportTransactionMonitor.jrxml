@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.9.0.final using JasperReports Library version 6.9.0-cb8f9004be492ccc537180b49c026951f4220bf3  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ReportTransactionMonitor" pageWidth="900" pageHeight="595" orientation="Landscape" columnWidth="860" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isIgnorePagination="true" uuid="d60c8297-0814-4a3b-a7f5-311b55bbd7a7">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="DW_LIVE"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="Table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_CH" mode="Opaque" backcolor="#89C795">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_TD_Exp" mode="Transparent" forecolor="#000000" backcolor="#FFFFFF" fontName="DejaVu Sans">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($F{SEQ_NO}.equals("1")) || new Boolean($F{SEQ_NO}.equals("2")) || new Boolean($F{SEQ_NO}.equals("3")) || new Boolean($F{SEQ_NO}.equals("4")) || new Boolean($F{SEQ_NO}.equals("5")) || new Boolean($F{SEQ_NO}.equals("6")) || new Boolean($F{SEQ_NO}.equals("7"))]]></conditionExpression>
+			<style mode="Transparent" forecolor="#000000" backcolor="#9AD0E6" pattern="" fontName="DejaVu Sans" isBold="true"/>
+		</conditionalStyle>
+	</style>
+	<subDataset name="Dataset1" uuid="54595ccc-4172-4b6c-94e6-a5546fe81c78">
+		<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+		<property name="com.jaspersoft.studio.data.defaultdataadapter" value="DW_LIVE"/>
+		<parameter name="s_fromdate" class="java.lang.String">
+			<parameterDescription><![CDATA[]]></parameterDescription>
+		</parameter>
+		<parameter name="s_todate" class="java.lang.String">
+			<parameterDescription><![CDATA[]]></parameterDescription>
+		</parameter>
+		<queryString language="SQL">
+			<![CDATA[SELECT * FROM (
+			WITH t ( ROW_NUM, SEQ_NO, CONTENT, TOTAL_CASE_NO, TOTAL_CIF_NO) AS
+			(
+			SELECT 100 ROW_NUM,'1' SEQ_NO,'Số lượng giao dịch xử lý' CONTENT, null TOTAL_CASE_NO,null TOTAL_CIF_NO
+			FROM DUAL
+			UNION ALL
+			SELECT 201 ROW_NUM,'2.1' SEQ_NO,'KH xác nhận thực hiện GD' CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			FROM
+			(
+			  SELECT COUNT(A.CASE_NO) TOTALCASENO_BYCIF,CIF_NO
+			  FROM FDS_CASE_STATUS A INNER JOIN FDS_CASE_DETAIL B ON A.CASE_NO = B.CASE_NO
+			  WHERE A.CLOSED_REASON IN ('CCE','CRC')  AND A.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			  GROUP BY B.CIF_NO
+			)
+			UNION ALL
+			SELECT ROWNUM+201 ROW_NUM,'2.' || (ROWNUM+1) SEQ_NO, CONTENT,TOTAL_CASE_NO,TOTAL_CIF_NO
+			FROM
+			(
+			    SELECT ID, DESCRIPTION CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			    FROM
+			    (
+			        SELECT COUNT(B.CASE_NO) TOTALCASENO_BYCIF,
+			        C.CIF_NO, A.ID,A.DESCRIPTION, B.CLOSED_REASON
+			        FROM FDS_DESCRIPTION A
+			        LEFT JOIN FDS_CASE_STATUS B ON B.CLOSED_REASON = A.TYPE AND B.OTHER LIKE '%'|| A.ID ||'%'
+			        INNER JOIN FDS_CASE_DETAIL C ON B.CASE_NO = C.CASE_NO
+			        WHERE A.TYPE='CCN' AND B.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			        GROUP BY C.CIF_NO, A.ID,A.DESCRIPTION, B.CLOSED_REASON
+			    )
+			    GROUP BY ID,DESCRIPTION
+			)
+			UNION ALL
+			SELECT 301 ROW_NUM,'3.1' SEQ_NO, 'Đơn vị liên hệ - KH xác nhận thực hiện GD' CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			FROM
+			(
+			  SELECT COUNT(A.CASE_NO) TOTALCASENO_BYCIF,CIF_NO
+			  FROM FDS_CASE_STATUS A INNER JOIN FDS_CASE_DETAIL B ON A.CASE_NO = B.CASE_NO
+			  WHERE A.CLOSED_REASON = 'CCT' AND A.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			  GROUP BY B.CIF_NO
+			)
+			UNION ALL
+			SELECT 302 ROW_NUM,'3.2' SEQ_NO, 'Ðơn vị liên hệ - KH xác nhận không thực hiện GD' CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			FROM
+			(
+			  SELECT COUNT(A.CASE_NO) TOTALCASENO_BYCIF,CIF_NO
+			  FROM FDS_CASE_STATUS A INNER JOIN FDS_CASE_DETAIL B ON A.CASE_NO = B.CASE_NO
+			  WHERE A.CLOSED_REASON = 'CNC' AND A.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			  GROUP BY B.CIF_NO
+			)
+			UNION ALL
+			SELECT 303 ROW_NUM,'3.3' SEQ_NO, 'Đơn vị không liên hệ được' CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			FROM
+			(
+			  SELECT COUNT(A.CASE_NO) TOTALCASENO_BYCIF,CIF_NO
+			  FROM FDS_CASE_STATUS A INNER JOIN FDS_CASE_DETAIL B ON A.CASE_NO = B.CASE_NO
+			  WHERE A.CLOSED_REASON = 'BCC' AND A.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			  GROUP BY B.CIF_NO
+			)
+			UNION ALL
+			SELECT 400 ROW_NUM,'4' SEQ_NO, 'Không liên hệ do KH yêu cầu' CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			FROM
+			(
+			  SELECT COUNT(A.CASE_NO) TOTALCASENO_BYCIF,CIF_NO
+			  FROM FDS_CASE_STATUS A INNER JOIN FDS_CASE_DETAIL B ON A.CASE_NO = B.CASE_NO
+              INNER JOIN (
+                select min(r.rule_priority) keep(dense_rank first order by r.rule_priority) rule_priority,t.case_no
+                from fds_case_hit_rules t 
+                join fds_rules r on t.rule_id=r.rule_id 
+                GROUP BY t.case_no
+                order by t.case_no asc
+              ) C ON C.CASE_NO=B.CASE_NO
+              INNER JOIN fds_rules D ON C.rule_priority=D.rule_priority AND D.RULE_ID IN ('RULE26','RULE21','RULE27','RULE08','RULE28','RULE29','RULE30','RULE22','RULE23','RULE31','RULE03','RULE32','RULE33','RULE10','RULE17','RULE39','RULE40','RULE41','SVIP01','SVIP02')
+			  WHERE A.CLOSED_REASON = 'NCR' AND A.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			  GROUP BY B.CIF_NO
+			)
+			UNION ALL
+			SELECT ROWNUM+500 ROW_NUM,'5.' || ROWNUM SEQ_NO, CONTENT,TOTAL_CASE_NO,TOTAL_CIF_NO
+			FROM
+			(
+			    SELECT ID, DESCRIPTION CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			    FROM
+			    (
+			        SELECT COUNT(B.CASE_NO) TOTALCASENO_BYCIF,
+			        C.CIF_NO, A.ID,A.DESCRIPTION, B.CLOSED_REASON
+			        FROM FDS_DESCRIPTION A
+			        INNER JOIN FDS_CASE_STATUS B ON B.CLOSED_REASON = A.TYPE AND B.OTHER LIKE '%'|| A.ID ||'%'
+			        INNER JOIN FDS_CASE_DETAIL C ON B.CASE_NO = C.CASE_NO
+			        WHERE TYPE='HCS' AND B.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			        GROUP BY C.CIF_NO, A.ID,A.DESCRIPTION, B.CLOSED_REASON
+			    )
+			    GROUP BY ID,DESCRIPTION
+			)
+			UNION ALL
+			SELECT ROWNUM+600 ROW_NUM,'6.' || ROWNUM SEQ_NO, CONTENT,TOTAL_CASE_NO,TOTAL_CIF_NO
+			FROM
+			(
+			    SELECT ID,DESCRIPTION CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			    FROM
+			    (
+			        SELECT COUNT(B.CASE_NO) TOTALCASENO_BYCIF,
+			        C.CIF_NO, A.ID,A.DESCRIPTION, B.CLOSED_REASON
+			        FROM FDS_DESCRIPTION A
+			        LEFT JOIN FDS_CASE_STATUS B ON B.CLOSED_REASON = A.TYPE AND B.OTHER LIKE '%'|| A.ID ||'%'
+			        INNER JOIN FDS_CASE_DETAIL C ON B.CASE_NO = C.CASE_NO
+			        WHERE A.TYPE='HCF' AND B.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			        GROUP BY C.CIF_NO, A.ID,A.DESCRIPTION, B.CLOSED_REASON
+			    )
+			    GROUP BY ID,DESCRIPTION
+			)
+			UNION ALL
+			SELECT 700 ROW_NUM,'7' SEQ_NO, 'Không liên hệ do KH không có nhu cầu hỗ trợ' CONTENT,NVL(SUM(TOTALCASENO_BYCIF),0) TOTAL_CASE_NO,NVL(COUNT(CIF_NO),0) TOTAL_CIF_NO
+			FROM
+			(
+			  SELECT COUNT(A.CASE_NO) TOTALCASENO_BYCIF,CIF_NO
+			  FROM FDS_CASE_STATUS A INNER JOIN FDS_CASE_DETAIL B ON A.CASE_NO = B.CASE_NO
+              INNER JOIN (
+                select min(r.rule_priority) keep(dense_rank first order by r.rule_priority) rule_priority,t.case_no
+                from fds_case_hit_rules t 
+                join fds_rules r on t.rule_id=r.rule_id 
+                GROUP BY t.case_no
+                order by t.case_no asc
+              ) C ON C.CASE_NO=B.CASE_NO
+              INNER JOIN fds_rules D ON C.rule_priority=D.rule_priority AND D.RULE_ID IN ('RULE13','RULE14','RULE15','RULE16','RULE34','RULE35','RULE20','RULE19','RULE36','RULE37','RULE38','RULE42')
+			  WHERE A.CLOSED_REASON = 'NCR' AND A.CRE_TMS between $P{s_fromdate} and  $P{s_todate}
+			  GROUP BY B.CIF_NO
+			)
+			)
+			SELECT ROW_NUM, SEQ_NO, CONTENT, TOTAL_CASE_NO, TOTAL_CIF_NO
+			FROM t
+			UNION ALL
+			SELECT 200 ROW_NUM,'2' SEQ_NO,'Liên hệ KH xác nhận GD' CONTENT,
+			    (SELECT NVL(SUM(TOTAL_CASE_NO),0) FROM t WHERE SEQ_NO LIKE '2.%') TOTAL_CASE_NO,
+			    (SELECT NVL(SUM(TOTAL_CIF_NO),0) FROM t WHERE SEQ_NO LIKE '2.%') TOTAL_CIF_NO
+			FROM dual
+			UNION ALL
+			SELECT 300 ROW_NUM,'3' SEQ_NO, 'Chuyển Đơn vị liên hệ KH để xác nhận GD' CONTENT,
+			    (SELECT NVL(SUM(TOTAL_CASE_NO),0) FROM t WHERE SEQ_NO LIKE '3.%') TOTAL_CASE_NO,
+			    (SELECT NVL(SUM(TOTAL_CIF_NO),0) FROM t WHERE SEQ_NO LIKE '3.%') TOTAL_CIF_NO
+			FROM dual
+			UNION ALL
+			SELECT 500 ROW_NUM,'5' SEQ_NO, 'Liên hệ hỗ trợ KH thành công ' CONTENT,
+			    (SELECT NVL(SUM(TOTAL_CASE_NO),0) FROM t WHERE SEQ_NO LIKE '5.%') TOTAL_CASE_NO,
+			    (SELECT NVL(SUM(TOTAL_CIF_NO),0) FROM t WHERE SEQ_NO LIKE '5.%') TOTAL_CIF_NO
+			FROM dual
+			UNION ALL
+			SELECT 600 ROW_NUM,'6' SEQ_NO, 'Liên hệ hỗ trợ KH không thành công ' CONTENT,
+			    (SELECT NVL(SUM(TOTAL_CASE_NO),0) FROM t WHERE SEQ_NO LIKE '6.%') TOTAL_CASE_NO,
+			    (SELECT NVL(SUM(TOTAL_CIF_NO),0) FROM t WHERE SEQ_NO LIKE '6.%') TOTAL_CIF_NO
+			FROM dual
+			UNION ALL
+			SELECT 101 "ROW_NUM",'1.1' "SEQ_NO",'GD hit rule nhóm 1' "CONTENT",
+			    (SELECT NVL(SUM(TOTAL_CASE_NO),0) FROM t WHERE SEQ_NO LIKE '2.%' OR SEQ_NO LIKE '3.%' OR SEQ_NO = '4') TOTAL_CASE_NO,
+			    (SELECT NVL(SUM(TOTAL_CIF_NO),0) FROM t WHERE SEQ_NO LIKE '2.%' OR SEQ_NO LIKE '3.%' OR SEQ_NO = '4') TOTAL_CIF_NO
+			FROM dual
+			UNION ALL
+			SELECT 102 "ROW_NUM",'1.2' "SEQ_NO",'GD hit rule nhóm 2' "CONTENT",
+			    (SELECT NVL(SUM(TOTAL_CASE_NO),0) FROM t WHERE SEQ_NO LIKE '5.%' OR SEQ_NO LIKE '6.%' OR SEQ_NO = '7') TOTAL_CASE_NO,
+			    (SELECT NVL(SUM(TOTAL_CIF_NO),0) FROM t WHERE SEQ_NO LIKE '5.%' OR SEQ_NO LIKE '6.%' OR SEQ_NO = '7') TOTAL_CIF_NO
+			FROM dual
+			) ORDER BY ROW_NUM ASC]]>
+		</queryString>
+		<field name="SEQ_NO" class="java.lang.String"/>
+		<field name="CONTENT" class="java.lang.String"/>
+		<field name="TOTAL_CASE_NO" class="java.lang.Integer"/>
+		<field name="TOTAL_CIF_NO" class="java.lang.Integer"/>
+	</subDataset>
+	<parameter name="p_fromdate" class="java.lang.String" isForPrompting="false">
+		<parameterDescription><![CDATA[]]></parameterDescription>
+		<defaultValueExpression><![CDATA["20170403000000000"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="p_todate" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["20170404999999999"]]></defaultValueExpression>
+	</parameter>
+	<queryString language="SQL">
+		<![CDATA[select 1 from dual]]>
+	</queryString>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="90" splitType="Stretch">
+			<staticText>
+				<reportElement x="-11" y="0" width="880" height="41" uuid="09c8ba6c-6180-4a79-848b-ef8bae434077"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="DejaVu Sans" size="20" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CÔNG TÁC GIÁM SÁT GIAO DỊCH VÀ HỖ TRỢ KHÁCH HÀNG THẺ]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="-11" y="41" width="881" height="49" uuid="1a9d2efd-c471-4ac0-8c2d-1ff9092354fa"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="DejaVu Sans" size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Từ ngày " +   $P{p_fromdate}.substring(6,8)+"/"+$P{p_fromdate}.substring(4,6)+"/"+$P{p_fromdate}.substring(0,4) +" đến ngày "+$P{p_todate}.substring(6,8)+"/"+$P{p_todate}.substring(4,6)+"/"+$P{p_todate}.substring(0,4)]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<detail>
+		<band height="85" splitType="Stretch">
+			<componentElement>
+				<reportElement x="-11" y="0" width="880" height="70" uuid="6377ba6a-bf54-4ce7-8259-1e4d1e36a282">
+					<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.VerticalRowLayout"/>
+					<property name="com.jaspersoft.studio.table.style.table_header" value="Table_TH"/>
+					<property name="com.jaspersoft.studio.table.style.column_header" value="Table_CH"/>
+					<property name="com.jaspersoft.studio.table.style.detail" value="Table_TD"/>
+					<property name="com.jaspersoft.studio.components.autoresize.proportional" value="true"/>
+				</reportElement>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+					<datasetRun subDataset="Dataset1" uuid="0ece8902-abcb-4ea0-87d4-1c096c6f2734">
+						<datasetParameter name="s_fromdate">
+							<datasetParameterExpression><![CDATA[$P{p_fromdate}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="s_todate">
+							<datasetParameterExpression><![CDATA[$P{p_todate}]]></datasetParameterExpression>
+						</datasetParameter>
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="40" uuid="d716d8e3-db1e-44c2-aa2a-7aae3a05ab84">
+						<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column1"/>
+						<jr:columnHeader style="Table_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="40" height="30" uuid="9533ddac-f6e1-43e8-a642-3ce54c281d3a">
+									<property name="com.jaspersoft.studio.unit.width" value="pixel"/>
+								</reportElement>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="DejaVu Sans" isBold="true"/>
+								</textElement>
+								<text><![CDATA[STT]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="30">
+							<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+								<reportElement style="Table_TD_Exp" mode="Transparent" x="0" y="0" width="40" height="30" backcolor="#FFFFFF" uuid="066f11e3-f0fb-4abe-a981-29c6cb4896a7">
+									<property name="com.jaspersoft.studio.unit.height" value="pixel"/>
+								</reportElement>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="DejaVu Sans"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{SEQ_NO}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="720" uuid="0eb78873-dcf5-4602-a59b-b4927c3e07b3">
+						<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column2"/>
+						<jr:columnHeader style="Table_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="720" height="30" uuid="de8381ac-761e-46ff-b552-c2e77c4b7f42"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="DejaVu Sans" isBold="true"/>
+								</textElement>
+								<text><![CDATA[Nội dung]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="30">
+							<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+								<reportElement style="Table_TD_Exp" mode="Transparent" x="0" y="0" width="720" height="30" backcolor="#FFFFFF" uuid="c62b0bad-c836-4a8b-93e0-5ae3049e1a7c"/>
+								<textElement textAlignment="Left" verticalAlignment="Middle">
+									<font fontName="DejaVu Sans"/>
+									<paragraph leftIndent="5"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{CONTENT}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="60" uuid="c45d903e-6b50-4274-9c6d-d4444a69f63f">
+						<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column3"/>
+						<jr:columnHeader style="Table_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="60" height="30" uuid="61eda602-41b8-4d65-8ac6-feead65b7b3f"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="DejaVu Sans" isBold="true"/>
+								</textElement>
+								<text><![CDATA[Số lượng Case]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="30">
+							<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+								<reportElement style="Table_TD_Exp" mode="Transparent" x="0" y="0" width="60" height="30" backcolor="#FFFFFF" uuid="4932c03a-24c7-4484-9d63-2e0eb0676989"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="DejaVu Sans"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{TOTAL_CASE_NO}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="60" uuid="daad990f-de03-466a-97e2-374bbf66c9e3">
+						<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column4"/>
+						<jr:columnHeader style="Table_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="60" height="30" uuid="d10e62df-b089-4a6c-875f-289c8a438c42"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="DejaVu Sans" isBold="true"/>
+								</textElement>
+								<text><![CDATA[Số lượng KH]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="30">
+							<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+								<reportElement style="Table_TD_Exp" mode="Transparent" x="0" y="0" width="60" height="30" backcolor="#FFFFFF" uuid="87101e8e-07f3-4792-82ff-7d5b97d595d4"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="DejaVu Sans"/>
+									<paragraph leftIndent="5"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{TOTAL_CIF_NO}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+		</band>
+	</detail>
+</jasperReport>
